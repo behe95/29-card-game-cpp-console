@@ -103,6 +103,18 @@ class Player
         {
             this->cards_in_hand.push_back(card);
         }
+
+        void show_cards_in_hand()
+        {
+            cout << "====================== " << endl;
+            cout << this->get_player_name() << endl;
+            for(int i = 0; i < this->cards_in_hand.size(); i++)
+            {
+                cout << this->cards_in_hand[i].card_name << "-" << this->cards_in_hand[i].card_suit << " ";
+            }
+            cout << endl;
+            cout << "====================== " << endl;
+        }
 };
 
 class Board
@@ -235,6 +247,18 @@ class Board
         this->human_player = this->dealer;
     }
 
+    vector<Player*> get_players()
+    {
+        Player* first_player = this->dealer->left_hand_player;
+        Player* second_player = first_player->left_hand_player;
+        Player* third_player = second_player->left_hand_player;
+        Player* fourth_player = this->dealer;
+
+        vector<Player*> players = {first_player, second_player, third_player, fourth_player};
+
+        return players;
+    }
+
     //before dealing the cards
     //the card will be cut to half by the player right side of
     //the dealer
@@ -288,6 +312,33 @@ class Board
         }
     }
 
+    void distribute_the_cards()
+    {
+        //there will be two distributions
+        //in each distribution each players will get 4 cards
+        //so in total 4 players will get total 4*4 = 16 cards
+        int total_distribution_cards_for_each_player = 4;
+
+        //the distribution will start from the player
+        //who is at the left side of the dealer
+        //and finally the dealer will get the cards
+        Player* first_player = this->dealer->left_hand_player;
+        Player* second_player = first_player->left_hand_player;
+        Player* third_player = second_player->left_hand_player;
+        Player* fourth_player = this->dealer;
+
+        vector<Player*> players = {first_player, second_player, third_player, fourth_player};
+
+        for(int player_index = 0; player_index < players.size(); player_index++)
+        {
+            for(int i = 0; i < total_distribution_cards_for_each_player; i++)
+            {
+                players[player_index]->set_cards_in_hand(this->cards.back());
+                this->cards.pop_back();
+            }
+        }
+    }
+
 };
 
 
@@ -311,9 +362,20 @@ int main()
 
 
     board.shuffle_cards();
-    board.get_cards();
     board.cut_the_cards();
+
     board.get_cards();
+
+    board.distribute_the_cards();
+
+
+    vector<Player*> players = board.get_players();
+
+    players[0]->show_cards_in_hand();
+    players[1]->show_cards_in_hand();
+    players[2]->show_cards_in_hand();
+    players[3]->show_cards_in_hand();
+
     return 0;
 }
 
