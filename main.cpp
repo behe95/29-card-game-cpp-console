@@ -104,7 +104,7 @@ class Board
     private:
         int total_cards = 32;
         vector<Card> cards;
-        Player* dealer;
+        Player* dealer = NULL;
 
     public:
 
@@ -165,13 +165,63 @@ class Board
         }
     }
 
+    void connect_player(Player** dealer,string player_name)
+    {
+        //at the first time of the game
+        //there is no player
+        //so we are going to set the first created player as the dealer
+        if(*dealer == NULL)
+        {
+            Player* player = new Player(player_name);
+            (*player).right_hand_player = player;
+            (*player).left_hand_player = player;
+            *dealer = player;
+            return;
+        }
+
+
+        //if dealer exists
+        //then the following line of the codes will be executed
+
+        //get the last added player
+        //which is sitting right next to the dealer
+        //or at the right hand side of the dealer
+        Player* last_player = (*dealer)->right_hand_player;
+
+        //create the new player
+        Player* player = new Player(player_name);
+
+        //this new player is going to be the last player now
+        //this player's left hand side player will be the dealer
+        (*player).left_hand_player = *dealer;
+
+        //and the dealers right hand side player will be now the newly
+        //created player
+        (*dealer)->right_hand_player = player;
+
+        //now newly players right hand side player will be
+        //the previous last player who was sitting right next to the dealer
+        (*player).right_hand_player = last_player;
+
+        //and the previous last players left hand side player
+        //will be now newly created player
+        last_player->left_hand_player = player;
+
+    }
+
     void create_players()
     {
         string player_name;
         cout << "Select player name:\t";
         cin >> player_name;
 
+        connect_player(&dealer, player_name);
+        connect_player(&dealer, "Player 2");
+        connect_player(&dealer, "Player 3 (Team)");
+        connect_player(&dealer, "Player 4");
     }
+
+
 
 };
 
@@ -190,58 +240,19 @@ int main()
 
 
 
-
-    //Player player1 = Player(player_name);
-    //Player player2 = Player("Player 2");
-    //Player player3 = Player("Player 3 (Team Mate)");
-    //Player player4 = Player("Player 4");
-
-    //Player players[] = {player1, player2, player3, player4};
-    //int total_players = sizeof(players) / sizeof(*players);
-
     Board board = Board();
 
     board.create_players();
 
-    board.shuffle_cards();
-    board.get_cards();
+
+
+    //board.shuffle_cards();
+    //board.get_cards();
 
     return 0;
 }
 
-void draw_hearts()
-{
-    float total_rows = 6;
-    float total_columns = 7;
 
-    for(int i = 0; i < ceil(total_rows/2); i++)
-    {
 
-    }
-}
-
-void draw_diamonds()
-{
-
-    float total_rows = 7;
-    int half_space_columns;
-
-    for(int i = 0; i < ceil(total_rows/2) - 1; i++)
-    {
-        half_space_columns = abs(ceil(total_rows/2) - i);
-        cout << string(half_space_columns, ' ');
-        cout << string (1 + 2*i, '*');
-        cout << string(half_space_columns, ' ');
-        cout << endl;
-    }
-    for(int i = ceil(total_rows/2) - 1; i >= 0; i--)
-    {
-        half_space_columns = abs(ceil(total_rows/2) - i);
-        cout << string(half_space_columns, ' ');
-        cout << string (1 + 2*i, '*');
-        cout << string(half_space_columns, ' ');
-        cout << endl;
-    }
-}
 
 
