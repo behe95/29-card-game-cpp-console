@@ -63,6 +63,7 @@ class Player
         string name;
         int score = 0;
         int bid = 0;
+        bool player_passed = false;
         vector<Card> cards_in_hand;
 
     public:
@@ -115,6 +116,26 @@ class Player
             cout << endl;
             cout << "====================== " << endl;
         }
+
+        int get_player_cards_strength()
+        {
+            int total_score = 0;
+            for(auto card: this->cards_in_hand)
+            {
+                total_score += card.card_points;
+            }
+            return total_score;
+        }
+
+        void set_player_passed()
+        {
+            this->player_passed = !this->player_passed;
+        }
+
+        bool get_player_passed()
+        {
+            return this->player_passed;
+        }
 };
 
 class Board
@@ -124,6 +145,8 @@ class Board
         vector<Card> cards;
         Player* dealer = NULL;
         Player* human_player = NULL;
+        int highest_bid = 0;
+        Player* highest_bidder = nullptr;
 
     public:
 
@@ -157,6 +180,26 @@ class Board
                 cards.push_back(card);
             }
         }
+    }
+
+    void default_board()
+    {
+        cout << "=============" << endl;
+        cout << "HIGHEST BIDDER ===> " << this->highest_bidder->get_player_name() << endl;
+        cout << "HIGHEST BID ===> " << this->highest_bid << endl;
+        cout << endl;
+        highest_bid = 0;
+        highest_bidder = nullptr;
+
+        vector<Player*> players = this->get_players();
+
+        for(Player* player: players)
+        {
+            if(player->get_player_passed())
+                player->set_player_passed();
+        }
+
+
     }
 
     void shuffle_cards()
@@ -339,6 +382,628 @@ class Board
         }
     }
 
+    void bidding()
+    {
+        cout << "|====================|" << endl;
+        cout << "|  16  |  17  |  18  |" << endl;
+        cout << "|--------------------|" << endl;
+        cout << "|  19  |  20  |  21  |" << endl;
+        cout << "|--------------------|" << endl;
+        cout << "|  22  |  23  |  24  |" << endl;
+        cout << "|--------------------|" << endl;
+        cout << "|  25  |  26  |  27  |" << endl;
+        cout << "|--------------------|" << endl;
+        cout << "|    28   | 0 (Pass) |" << endl;
+        cout << "|====================|" << endl;
+
+        //bidding will start from the left side from the dealer
+        //so we are setting the current bidder
+        Player* current_bidder = this->dealer->left_hand_player;
+
+        //every time a current bidder bids he will stay as a bidder. Suppose the bidder is "A". After "A" bids his left player "B" will get the
+        //chance to bid more than "A".
+        //when the left person(B) of the current bidder(A) gets his/her(B) turn to bid and bids more then the previous player(A)
+        //the previous player (A) will get another chance to bid as same as or more than the other player(B)
+        //then the bidding will again go the other player(B). And the player "B" can bids more or pass the bidding.
+        //same can be done by the player "A" when he/she(A) gets the chance of another bidding
+        //to track these players bidding situation we are going to declare the following variable
+        //the variable is going to be a null pointer at first
+        //because at first the left player of the dealer will bid. And at the beginning the dealer cannot get the chance to bid after the
+        //left side player bids. So we don't need to track the player at first
+        Player* current_bidder_right_player = nullptr;
+
+        //boolean variable to track if the bidding is running
+        bool is_bidding_running = true;
+
+        //the bidding always start from 16 up to 28
+        //so the following int variable is going to store the current bidding store
+        //and the initial value is going to be the lowest most bidding score
+        int current_bidding_score = 16;
+
+        //time(0) function returns the current time
+        //srand() function sets the starting point for producing a series of pseudo-random integers.
+        //If srand() is not called, the rand() seed is set as if srand(1) were called at program start.
+        //check documentation for in depth knowledge
+        srand(time(0));
+
+        //boolean variable to check if the current player is the last bidder
+        //in the bidding session
+        bool FINAL_BID_RUNNING = false;
+
+        //temporary variable to store a Player data type pointer variable
+        //to swap it between current bidder and the other bidder
+        Player* temp_bidder = nullptr;
+
+        //int data type variable to check how
+        //many players have passed their bidding
+        int bid_pass_counter = 0;
+
+        //while loop to run the bidding
+        while(is_bidding_running)
+        {
+
+            //the following if condition will be executed
+            //when the last bidder bids
+            //or in other way if any 3 players out of the total 4 players
+            //passed their bidding then the following condition will be executed
+            if(FINAL_BID_RUNNING)
+            {
+                //the board variables will be restored to their default state
+                //by calling the following method
+                this->default_board();
+                cout << "Bidding done!" << endl;
+                break;
+            }
+
+            //the following condition will be executed when all the four players passed their biddings
+            //at that time their will be no higher bidder
+            if(bid_pass_counter == 4 && this->highest_bidder == nullptr)
+            {
+                //the board variables will be restored to their default state
+                //by calling the following method
+                this->default_board();
+                cout << "Bidding done!" << endl;
+                break;
+            }
+
+            cout << "CURRENT BIDDER " << current_bidder->get_player_name() << endl;
+
+            //boolean variable to check if the bot
+            //wants to pass bidding
+            //or wants to make any bid
+            bool bot_wants_to_pass = true;
+
+            //the following condition will check if the current bidder is the actual human player
+            //if it is then the following condition will be executed
+            //otherwise the else condition will be executed
+            if(current_bidder == this->human_player)
+            {
+                cout << "What is your bidding?\t";
+                cin >> current_bidding_score;
+                cout << endl;
+
+                //if the current bidding score is larger than the highest bidding
+                //then the following if condition will be executed
+                if(current_bidding_score > highest_bid)
+                {
+                    //we are going to store the current bidding score as the highest bidding score
+                    this->highest_bid = current_bidding_score;
+
+                    //the following statement will store the current player as the highest bidder
+                    this->highest_bidder = current_bidder;
+
+                    //if the following variable is a null pointer then the following if condition will be executed
+                    //otherwise the else condition will be executed
+                    //the following variable will be a null pointer when the current player is the first bidder
+                    //at the beginning of the current bidding session
+                    if(current_bidder_right_player == nullptr)
+                    {
+                        //the current bidder will be stored into the following pointer variable
+                        //we will hold this bidder for a while and we will come back to this bidder again
+                        //once the left side of this player bids to ask him/her if he/she wants to bid more then the left side player or pass the bidding
+                        current_bidder_right_player = current_bidder;
+
+                        //we are going to go the left side player so that we can
+                        //as the player for bidding
+                        //the following statement is going to change the current bidder
+                        current_bidder = current_bidder->left_hand_player;
+                    }
+                    else
+                    {
+                        //suppose the first bidder was player "A" and second bidder was player "B"
+                        //when player "A" was bidding he was the "current bidder"
+                        //then when the player "B" was bidding he/she was the "current bidder" and
+                        //at the time of player "B" bidding, the player "A" became the "waiting bidder" who would get another chance to bid
+                        //once player "B" would be done
+                        //so at that point player "A" would be the "current bidder right player"
+                        //after player "B" was done with bidding we need to make the player "A" as a current bidder
+                        //and then the player "B" will be the "waiting bidder" and he/she will get another chance to bid and then player "B" will be
+                        //the "current bidder" again and son on
+                        //this bidding between player "A" and "B" will be running until one of them passed bidding
+                        //that's why the following 3 statements are there
+                        //we are actually swapping the "current bidder" and the "waiting bidder"
+                        temp_bidder = current_bidder;
+                        current_bidder = current_bidder_right_player;
+                        current_bidder_right_player = temp_bidder;
+                    }
+
+                    //suppose the players are sit like the following pattern
+                    //the arrows indicate how the bidding flow goes
+                    //==========
+                    //
+                    //Player A      ->    Player B
+                    //  ^                   |
+                    //  |                   v
+                    //Player C      <-   Player D (Card Dealer)
+                    //
+                    //==========
+                    //Suppose player 'D' is the dealer
+                    //so the first bidder will be player 'C'
+                    //at this time there will be no "waiting bidder"
+                    //suppose player 'C' bids a certain number
+                    //now the player 'C' will be the 'waiting bidder' and player 'A' is going to be the next or current bidder
+                    //suppose the player 'A' pass the bidding
+                    //now the waiting bidder is still the player 'C'
+                    //and current bidding will go the player 'D' and player 'D' is now the 'current bidder'
+                    //suppose the player 'D' bids more than player 'C'
+                    //now we will swap the 'current bidder' and the 'waiting bidder'
+                    //now the player 'D' is going to be the 'waiting bidder' and player 'C' is going to be the 'current bidder'
+                    //now suppose the 'current bidder' player 'C' pass the bidding
+                    //at this point player 'D' is still the 'waiting bidder'
+                    //now we need to look for the next bidder who has not passed bidding
+                    //that player is going to be our 'current bidder'
+                    //but there is only one player left who has not passed bidding and
+                    //that player is going to be the player 'D'
+                    //at this point the player 'D' is going to be the 'current bidder' and also the 'waiting bidder'
+                    //that means we reached to our final bidder
+
+                    //the following condition is going to check if the 'current bidder' and the 'waiting bidder' is the same player
+                    //if it is then the final bid is done
+                    //and we are going to change the following boolean variable to true
+                    if(current_bidder == current_bidder_right_player)
+                    {
+                        FINAL_BID_RUNNING = true;
+                    }
+                }
+                //this following 'else if' condition will be executed if the human player pass bidding
+                else if(current_bidding_score == 0)
+                {
+                    //we are going to set the member data inside the Player instance
+                    //to true to mean that that specific player has passed bidding
+                    current_bidder->set_player_passed();
+
+                    //increasing the number of the players that passed
+                    //bidding by 1 (one)
+                    bid_pass_counter++;
+
+                    //if the current bidder is the first bidder
+                    //or if there is no 'waiting' bidder
+                    //then the following if condition will be executed
+
+                    //suppose the players are sit like the following pattern
+                    //the arrows indicate how the bidding flow goes
+                    //==========
+                    //
+                    //Player A      ->    Player B
+                    //  ^                   |
+                    //  |                   v
+                    //Player C      <-   Player D (Card Dealer)
+                    //
+                    //==========
+                    //Suppose player 'D' is the dealer
+                    //at first player 'C' is going to be the 'current bidder'
+                    //so there is no 'waiting bidder'
+                    //suppose player 'C' passed bidding
+                    //still 'waiting bidder' is none
+                    //the bidding will go the player 'A'
+                    //now player 'A' is the current bidder
+                    //if player 'A' pass the bidding too then we need to go the player 'B'
+                    //because there is no 'waiting bidder'
+                    //this is exactly what is going on inside the following if condition
+                    if(current_bidder_right_player == nullptr)
+                    {
+                        //if the first bidder pass then the current bidding
+                        //will go the left player
+                        current_bidder = current_bidder->left_hand_player;
+                    }
+                    else
+                    {
+                        //this body of the 'else' condition will find our who needs to bid next
+                        //suppose the players are sit like the following pattern
+                        //the arrows indicate how the bidding flow goes
+                        //==========
+                        //
+                        //Player A      ->    Player B
+                        //  ^                   |
+                        //  |                   v
+                        //Player C      <-   Player D (Card Dealer)
+                        //
+                        //==========
+                        //Suppose player 'D' is the dealer
+                        //so the first bidder is player 'C' or we may say that the 'current bidder'
+                        //the 'waiting bidder' is none at this point
+                        //suppose player 'C' bids a certain number and player 'C' going to be the 'highest bidder' for now
+                        //now the 'waiting bidder' is going to be the player 'C'
+                        //'current bidder' is now player 'A'
+                        //suppose the player 'A' pass the bidding
+                        //so right now we need to go the player 'B'
+                        //to do that we are going to execute the following statements
+
+                        //first we are going to set the current bidder as the 'highest bidder'
+                        //this is for a temporary time to track down the expected bidder
+                        current_bidder = this->highest_bidder;
+
+                        //now we are going inside an infinite while loop until we get the
+                        //expected bidder
+                        while(true)
+                        {
+                            //when the while loop runs for the first time
+                            //we are going to the left player of the 'highest bidder'
+                            //because we already know that 'highest bidder' has already bid
+                            //so we don't need set the 'highest bidder' as the 'current bidder'
+                            //this time we will check if the 'current bidder' passed bidding
+                            //if the current bidder passed bidding then we will run the while loop again
+                            //and go the next player
+                            //the following if condition will do that for us
+                            //and if the condition is true then the while loop will break
+
+                            //=======Example 1 =====
+                            //consider the previously discussed bidding pattern
+                            //where player 'C' bid but the player 'A' passed and now we need to make the player 'B' as the current bidder
+                            //at this time the 'highest bidder' is the player 'C'
+                            //first time when the while loop runs we will set player 'A' as the 'current player'
+                            //by the following variable re-assigning
+                            //then we will check by the 'if condition' if the player 'A' passed bidding
+                            //if player 'A' passed bidding then the while loop run again and this time we are going
+                            //to set the player 'B' as the 'current player'
+                            //and this time we will see that the player never passed before
+                            //so the while loop condition will break
+                            //player 'B' will be our 'current bidder'
+                            //and the 'highest bidder' which was player 'C' will be the 'waiting bidder'
+
+
+                            //======== Example 2 =======
+                            //there can be another situation where suppose
+                            //instead of passing the bidding, player 'A' makes a certain number of bid
+                            //and then the bidding will be go the player 'C' again
+                            //and this time suppose the player 'C' passed the bidding
+                            //at this time player 'C' will be the highest bidder
+                            //so the current while loop will run one time and the 'current bidder' will be the player 'B'
+                            //making the player 'A' as a 'waiting bidder'
+                            current_bidder = current_bidder->left_hand_player;
+
+                            if(!current_bidder->get_player_passed())
+                            {
+                                break;
+                            }
+                        }
+
+                        //the following statement will set the 'highest bidder' as the 'waiting bidder'
+                        current_bidder_right_player = this->highest_bidder;
+
+                        //suppose the players are sit like the following pattern
+                        //the arrows indicate how the bidding flow goes
+                        //==========
+                        //
+                        //Player A      ->    Player B
+                        //  ^                   |
+                        //  |                   v
+                        //Player C      <-   Player D (Card Dealer)
+                        //
+                        //==========
+                        //Suppose player 'D' is the dealer
+                        //so the first bidder will be player 'C'
+                        //at this time there will be no "waiting bidder"
+                        //suppose player 'C' bids a certain number
+                        //now the player 'C' will be the 'waiting bidder' and player 'A' is going to be the next or current bidder
+                        //suppose the player 'A' pass the bidding
+                        //now the waiting bidder is still the player 'C'
+                        //and current bidding will go the player 'D' and player 'D' is now the 'current bidder'
+                        //suppose the player 'D' bids more than player 'C'
+                        //now we will swap the 'current bidder' and the 'waiting bidder'
+                        //now the player 'D' is going to be the 'waiting bidder' and player 'C' is going to be the 'current bidder'
+                        //now suppose the 'current bidder' player 'C' pass the bidding
+                        //at this point player 'D' is still the 'waiting bidder'
+                        //now we need to look for the next bidder who has not passed bidding
+                        //that player is going to be our 'current bidder'
+                        //but there is only one player left who has not passed bidding and
+                        //that player is going to be the player 'D'
+                        //at this point the player 'D' is going to be the 'current bidder' and also the 'waiting bidder'
+                        //that means we reached to our final bidder
+
+                        //the following condition is going to check if the 'current bidder' and the 'waiting bidder' is the same player
+                        //if it is then the final bid is done
+                        //and we are going to change the following boolean variable to true
+                        if(current_bidder == current_bidder_right_player)
+                        {
+                            FINAL_BID_RUNNING = true;
+                        }
+                    }
+                }
+                else
+                {
+                    cout << "Bidding should be greater than current highest bidding. Input 0 (Zero) to pass, Try again." << endl;
+                    continue;
+                }
+            }
+            else
+            {
+                //rand() % n will result any integer number between 0 to (n-1)
+                //the following variable will be use to make a decision about bot
+                //if the bot wants to pass the bidding or make any bidding
+                int temp_decision = rand() % 2;
+
+                if(temp_decision == 0)
+                    bot_wants_to_pass = false;
+                else
+                    bot_wants_to_pass = true;
+
+                //if bot wants to pass then the following 'if' condition will be executed
+                //otherwise the 'else' condition will be executed
+                if(bot_wants_to_pass)
+                {
+                    cout << current_bidder->get_player_name() << " passes bidding!" << endl;
+
+                    //we are going to set the member data inside the Player instance
+                    //to true to mean that that specific player has passed bidding
+                    current_bidder->set_player_passed();
+
+                    //increasing the number of the players that passed
+                    //bidding by 1 (one)
+                    bid_pass_counter++;
+
+                    //if the current bidder is the first bidder
+                    //or if there is no 'waiting' bidder
+                    //then the following if condition will be executed
+
+                    //suppose the players are sit like the following pattern
+                    //the arrows indicate how the bidding flow goes
+                    //==========
+                    //
+                    //Player A      ->    Player B
+                    //  ^                   |
+                    //  |                   v
+                    //Player C      <-   Player D (Card Dealer)
+                    //
+                    //==========
+                    //Suppose player 'D' is the dealer
+                    //at first player 'C' is going to be the 'current bidder'
+                    //so there is no 'waiting bidder'
+                    //suppose player 'C' passed bidding
+                    //still 'waiting bidder' is none
+                    //the bidding will go the player 'A'
+                    //now player 'A' is the current bidder
+                    //if player 'A' pass the bidding too then we need to go the player 'B'
+                    //because there is no 'waiting bidder'
+                    //this is exactly what is going on inside the following if condition
+                    if(current_bidder_right_player == nullptr)
+                    {
+                        //if the first bidder pass then the current bidding
+                        //will go the left player
+                        current_bidder = current_bidder->left_hand_player;
+                    }
+                    else
+                    {
+                        //this body of the 'else' condition will find our who needs to bid next
+                        //suppose the players are sit like the following pattern
+                        //the arrows indicate how the bidding flow goes
+                        //==========
+                        //
+                        //Player A      ->    Player B
+                        //  ^                   |
+                        //  |                   v
+                        //Player C      <-   Player D (Card Dealer)
+                        //
+                        //==========
+                        //Suppose player 'D' is the dealer
+                        //so the first bidder is player 'C' or we may say that the 'current bidder'
+                        //the 'waiting bidder' is none at this point
+                        //suppose player 'C' bids a certain number and player 'C' going to be the 'highest bidder' for now
+                        //now the 'waiting bidder' is going to be the player 'C'
+                        //'current bidder' is now player 'A'
+                        //suppose the player 'A' pass the bidding
+                        //so right now we need to go the player 'B'
+                        //to do that we are going to execute the following statements
+
+                        //first we are going to set the current bidder as the 'highest bidder'
+                        //this is for a temporary time to track down the expected bidder
+                        current_bidder = this->highest_bidder;
+
+                        //now we are going inside an infinite while loop until we get the
+                        //expected bidder
+                        while(true)
+                        {
+                            //when the while loop runs for the first time
+                            //we are going to the left player of the 'highest bidder'
+                            //because we already know that 'highest bidder' has already bid
+                            //so we don't need set the 'highest bidder' as the 'current bidder'
+                            //this time we will check if the 'current bidder' passed bidding
+                            //if the current bidder passed bidding then we will run the while loop again
+                            //and go the next player
+                            //the following if condition will do that for us
+                            //and if the condition is true then the while loop will break
+
+                            //=======Example 1 =====
+                            //consider the previously discussed bidding pattern
+                            //where player 'C' bid but the player 'A' passed and now we need to make the player 'B' as the current bidder
+                            //at this time the 'highest bidder' is the player 'C'
+                            //first time when the while loop runs we will set player 'A' as the 'current player'
+                            //by the following variable re-assigning
+                            //then we will check by the 'if condition' if the player 'A' passed bidding
+                            //if player 'A' passed bidding then the while loop run again and this time we are going
+                            //to set the player 'B' as the 'current player'
+                            //and this time we will see that the player never passed before
+                            //so the while loop condition will break
+                            //player 'B' will be our 'current bidder'
+                            //and the 'highest bidder' which was player 'C' will be the 'waiting bidder'
+
+
+                            //======== Example 2 =======
+                            //there can be another situation where suppose
+                            //instead of passing the bidding, player 'A' makes a certain number of bid
+                            //and then the bidding will be go the player 'C' again
+                            //and this time suppose the player 'C' passed the bidding
+                            //at this time player 'C' will be the highest bidder
+                            //so the current while loop will run one time and the 'current bidder' will be the player 'B'
+                            //making the player 'A' as a 'waiting bidder'
+
+                            current_bidder = current_bidder->left_hand_player;
+                            if(!current_bidder->get_player_passed())
+                            {
+                                break;
+                            }
+                        }
+
+                        //the following statement will set the 'highest bidder' as the 'waiting bidder'
+                        current_bidder_right_player = this->highest_bidder;
+
+                        //suppose the players are sit like the following pattern
+                        //the arrows indicate how the bidding flow goes
+                        //==========
+                        //
+                        //Player A      ->    Player B
+                        //  ^                   |
+                        //  |                   v
+                        //Player C      <-   Player D (Card Dealer)
+                        //
+                        //==========
+                        //Suppose player 'D' is the dealer
+                        //so the first bidder will be player 'C'
+                        //at this time there will be no "waiting bidder"
+                        //suppose player 'C' bids a certain number
+                        //now the player 'C' will be the 'waiting bidder' and player 'A' is going to be the next or current bidder
+                        //suppose the player 'A' pass the bidding
+                        //now the waiting bidder is still the player 'C'
+                        //and current bidding will go the player 'D' and player 'D' is now the 'current bidder'
+                        //suppose the player 'D' bids more than player 'C'
+                        //now we will swap the 'current bidder' and the 'waiting bidder'
+                        //now the player 'D' is going to be the 'waiting bidder' and player 'C' is going to be the 'current bidder'
+                        //now suppose the 'current bidder' player 'C' pass the bidding
+                        //at this point player 'D' is still the 'waiting bidder'
+                        //now we need to look for the next bidder who has not passed bidding
+                        //that player is going to be our 'current bidder'
+                        //but there is only one player left who has not passed bidding and
+                        //that player is going to be the player 'D'
+                        //at this point the player 'D' is going to be the 'current bidder' and also the 'waiting bidder'
+                        //that means we reached to our final bidder
+
+                        //the following condition is going to check if the 'current bidder' and the 'waiting bidder' is the same player
+                        //if it is then the final bid is done
+                        //and we are going to change the following boolean variable to true
+                        if(current_bidder == current_bidder_right_player)
+                        {
+                            FINAL_BID_RUNNING = true;
+                        }
+                    }
+
+
+                }
+                else if(!bot_wants_to_pass)
+                {
+                    //use this variable data later
+                    int player_cards_strenght = current_bidder->get_player_cards_strength();
+                    //////
+
+                    current_bidding_score = current_bidding_score + rand() % 3;
+
+                    if(current_bidding_score > 28)
+                        current_bidding_score = 28;
+
+                    cout << current_bidder->get_player_name() << " bids " << current_bidding_score << endl;
+
+                    //we are going to store the current bidding score as the highest bidding score
+                    this->highest_bid = current_bidding_score;
+
+                    //the following statement will store the current player as the highest bidder
+                    this->highest_bidder = current_bidder;
+
+
+                    //if the following variable is a null pointer then the following if condition will be executed
+                    //otherwise the else condition will be executed
+                    //the following variable will be a null pointer when the current player is the first bidder
+                    //at the beginning of the current bidding session
+                    if(current_bidder_right_player == nullptr)
+                    {
+
+                        //the current bidder will be stored into the following pointer variable
+                        //we will hold this bidder for a while and we will come back to this bidder again
+                        //once the left side of this player bids to ask him/her if he/she wants to bid more then the left side player or pass the bidding
+                        current_bidder_right_player = current_bidder;
+
+                        //we are going to go the left side player so that we can
+                        //as the player for bidding
+                        //the following statement is going to change the current bidder
+                        current_bidder = current_bidder->left_hand_player;
+                    }
+                    else
+                    {
+
+                        //suppose the first bidder was player "A" and second bidder was player "B"
+                        //when player "A" was bidding he was the "current bidder"
+                        //then when the player "B" was bidding he/she was the "current bidder" and
+                        //at the time of player "B" bidding, the player "A" became the "waiting bidder" who would get another chance to bid
+                        //once player "B" would be done
+                        //so at that point player "A" would be the "current bidder right player"
+                        //after player "B" was done with bidding we need to make the player "A" as a current bidder
+                        //and then the player "B" will be the "waiting bidder" and he/she will get another chance to bid and then player "B" will be
+                        //the "current bidder" again and son on
+                        //this bidding between player "A" and "B" will be running until one of them passed bidding
+                        //that's why the following 3 statements are there
+                        //we are actually swapping the "current bidder" and the "waiting bidder"
+                        temp_bidder = current_bidder;
+                        current_bidder = current_bidder_right_player;
+                        current_bidder_right_player = temp_bidder;
+                    }
+
+                    //suppose the players are sit like the following pattern
+                    //the arrows indicate how the bidding flow goes
+                    //==========
+                    //
+                    //Player A      ->    Player B
+                    //  ^                   |
+                    //  |                   v
+                    //Player C      <-   Player D (Card Dealer)
+                    //
+                    //==========
+                    //Suppose player 'D' is the dealer
+                    //so the first bidder will be player 'C'
+                    //at this time there will be no "waiting bidder"
+                    //suppose player 'C' bids a certain number
+                    //now the player 'C' will be the 'waiting bidder' and player 'A' is going to be the next or current bidder
+                    //suppose the player 'A' pass the bidding
+                    //now the waiting bidder is still the player 'C'
+                    //and current bidding will go the player 'D' and player 'D' is now the 'current bidder'
+                    //suppose the player 'D' bids more than player 'C'
+                    //now we will swap the 'current bidder' and the 'waiting bidder'
+                    //now the player 'D' is going to be the 'waiting bidder' and player 'C' is going to be the 'current bidder'
+                    //now suppose the 'current bidder' player 'C' pass the bidding
+                    //at this point player 'D' is still the 'waiting bidder'
+                    //now we need to look for the next bidder who has not passed bidding
+                    //that player is going to be our 'current bidder'
+                    //but there is only one player left who has not passed bidding and
+                    //that player is going to be the player 'D'
+                    //at this point the player 'D' is going to be the 'current bidder' and also the 'waiting bidder'
+                    //that means we reached to our final bidder
+
+                    //the following condition is going to check if the 'current bidder' and the 'waiting bidder' is the same player
+                    //if it is then the final bid is done
+                    //and we are going to change the following boolean variable to true
+                    if(current_bidder == current_bidder_right_player)
+                    {
+                        FINAL_BID_RUNNING = true;
+                    }
+
+                }
+            }
+
+            cout << endl;
+            system("pause");
+            cout << endl;
+        }
+
+
+    }
+
 };
 
 
@@ -375,6 +1040,9 @@ int main()
     players[1]->show_cards_in_hand();
     players[2]->show_cards_in_hand();
     players[3]->show_cards_in_hand();
+
+    while(true)
+        board.bidding();
 
     return 0;
 }
